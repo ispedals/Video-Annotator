@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet">
+		<script src="http://code.jquery.com/jquery.js"></script>
+		<script src="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
+		<style>
+		.selected {
+			background: yellow;
+		}
+		li{
+			font-size: larger;
+		}
+		</style>
+		<script>
+			var q = {};
+			if (location.href.indexOf('?') > -1) {
+				//http://stackoverflow.com/a/14884254
+				location.href.split('?')[1].split('&').forEach(function (i) {
+					q[i.split('=')[0]] = i.split('=')[1];
+				});
+			}
+
+			var tag = document.createElement('script');
+			tag.src = "https://www.youtube.com/iframe_api";
+			var firstScriptTag = document.getElementsByTagName('script')[0];
+			firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+			var player;
+
+			function onYouTubeIframeAPIReady() {
+				player = new YT.Player('player', {
+					height: '390',
+					width: '640',
+					videoId: q.videoid || 'u1zgFlCw8Aw'
+				});
+			}
+			
+			var TIMEOUTID;
+			
+			function goto_time(time) {
+				document.querySelector('.selected') && document.querySelector('.selected').classList.remove('selected');
+				var selected = document.querySelector('a[data-time="'+time+'"]').parentNode;
+				selected.classList.add('selected');
+				
+				var preceeding_value = parseInt(document.querySelector('#preceeding').value, 10);
+				if(preceeding_value > 0) { 
+					time = Math.max(time - preceeding_value, 0); 
+				}				
+				player.seekTo(time);
+				player.playVideo();
+				
+				if(selected.nextSibling) {
+					var delay = preceeding_value * 1000 + Math.max((selected.nextSibling.firstElementChild.dataset.time - selected.firstElementChild.dataset.time)*1000, 3000);
+					clearTimeout(TIMEOUTID);
+					TIMEOUTID=setTimeout(function () {player.pauseVideo();}, delay);
+				}
+			}
+
+			var marked_times = [];
+			
+			function remove_time(index) {
+				marked_times.splice(index, 1);
+				render_times();
+			}
+
+			function render_times() {
+				marked_times.sort(function (a, b) {
+					return a - b
+				});
+				document.querySelector('#times').innerHTML = marked_times.reduce(function (prev, current_time, i) {
+					return prev += '<li><a contentEditable data-time="'+current_time+'" data-index="'+i+'" href="#" onclick="goto_time(' + current_time + ')">' + current_time + '</a><button onclick="remove_time('+i+')" class="close">&times;</button></li>';
+				}, '');
+			}
+			
+			function mark_time() {
+				marked_times.push(Math.floor(player.getCurrentTime() * 100) / 100);
+				render_times();
+			}
+			
+			function preceed(is_zeroed) {
+				if(is_zeroed) { document.querySelector('#preceeding').value = 0; return;}
+				document.querySelector('#preceeding').value = (parseInt(document.querySelector('#preceeding').value, 10) || 0) + 1;
+			}
+			
+			function goto_selected_time() {
+				document.querySelector('.selected') && goto_time(document.querySelector('.selected').firstElementChild.dataset.time);
+			}
+			
+			function remove_all_times() {
+				marked_times = [];
+				render_times();
+			}
+
+
+		</script>
+	</head>
+    <body>
+		<div class="container" style="width:640px;">
+			<div id="player"></div>
+			<button class="btn btn-large btn-block btn-primary" type="button" onclick="mark_time()">What?</button>
+			<div class="input-append" style="margin-top: 10px;">
+				<input type="number" class="input-mini" id="preceeding" value="2"> 
+				<button class="btn" type="button" onclick="preceed(true)">0</button>
+				<button class="btn" type="button" onclick="preceed(false)">+1</button>
+			</div>
+			<button class="btn" type="button" onclick="goto_selected_time()">Repeat</button>
+			<button class="btn" type="button" onclick="remove_all_times()">Remove all</button>
+			<ul id="times" class="unstyled"></ul>
+		</div>
+    </body>
+
+</html>

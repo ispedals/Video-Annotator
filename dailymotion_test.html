@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <script>
+        var q = {}
+        if (location.href.indexOf('?') > -1) {
+            //http://stackoverflow.com/a/14884254
+            location.href.split('?')[1].split('&').forEach(function (i) {
+                q[i.split('=')[0]] = i.split('=')[1];
+            });
+        }
+
+        var tag = document.createElement('script');
+
+        tag.src = "https://api.dmcdn.net/all.js";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var player;
+
+        function dmAsyncInit() {
+            player = DM.player('player', {
+                height: '390',
+                width: '640',
+                video: q.videoid || 'xya2cf',
+				api: true
+            });
+        }
+
+        var marked_times = [];
+
+        function mark_time() {
+            marked_times.push(Math.floor(player.currentTime * 100) / 100);
+            marked_times.sort(function (a, b) {
+                return a - b
+            });
+            document.querySelector('#times').innerHTML = marked_times.reduce(function (prev, current_time) {
+                return prev += '<li><a onclick="goto_time(' + current_time + ')">' + current_time + '</a></li>';
+            }, '');
+
+        }
+
+        function goto_time(time) {
+            player.seekTo(time);
+        }
+    </script>
+
+    <body>
+        <div id="player"></div>
+        <button onclick="mark_time()">What?</button>
+        <ul id="times"></ul>
+    </body>
+
+</html>
